@@ -3,47 +3,257 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>เว็บแอป แปลงรูปภาพเป็น PDF</title>
+<title>แปลงรูปภาพเป็น PDF</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
+  :root {
+    --bg-main: #0b0f19;
+    --card-bg: rgba(23, 31, 48, 0.7);
+    --accent-glow: #8b5cf6;
+    --accent-blue: #6366f1;
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border-color: #1e293b;
+  }
+
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Tahoma,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:24px;color:#1f2937}
-  .wrap{max-width:960px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
-  header{padding:24px 28px;background:#111827;color:#fff}
-  header h1{font-size:22px}
-  header p{font-size:13px;opacity:.7;margin-top:4px}
-  .body{padding:24px 28px}
-  #drop{border:2px dashed #c7d2fe;border-radius:14px;padding:40px 20px;text-align:center;cursor:pointer;transition:.2s;background:#f8faff}
-  #drop.over{border-color:#6366f1;background:#eef2ff;transform:scale(1.01)}
-  #drop .icon{font-size:44px}
-  #drop b{display:block;margin-top:8px;font-size:16px}
-  #drop span{font-size:13px;color:#6b7280}
-  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:22px}
-  .opt label{display:block;font-size:12px;font-weight:600;color:#4b5563;margin-bottom:6px}
-  select,input[type=number]{width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff}
-  input[type=range]{width:100%}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;margin-top:22px}
-  .card{position:relative;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#f9fafb;cursor:grab}
-  .card.drag{opacity:.4}
-  .card img{width:100%;height:120px;object-fit:contain;background:#fff;display:block}
-  .card .meta{padding:6px 8px;font-size:11px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .card .num{position:absolute;top:6px;left:6px;background:#111827;color:#fff;font-size:11px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
-  .card .del{position:absolute;top:6px;right:6px;background:#ef4444;color:#fff;border:0;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
-  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
-  button.act{flex:1;min-width:150px;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
-  .primary{background:#4f46e5;color:#fff}
-  .primary:hover{background:#4338ca}
-  .primary:disabled{background:#c7d2fe;cursor:not-allowed}
-  .ghost{background:#f3f4f6;color:#374151}
-  .ghost:hover{background:#e5e7eb}
-  #status{margin-top:14px;font-size:13px;text-align:center;color:#4b5563;min-height:18px}
-  .prog{height:6px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-top:10px;display:none}
-  .prog i{display:block;height:100%;width:0;background:#4f46e5;transition:.2s}
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: var(--bg-main);
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+    min-height: 100vh;
+    padding: 24px;
+    color: var(--text-main);
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+  }
+
+  header {
+    padding: 28px 32px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* --- สไตล์ของโลโก้ที่เพิ่มใหม่ --- */
+  .logo-box {
+    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+  }
+  .logo-box img {
+    max-height: 50px; /* ปรับขนาดความสูงโลโก้ตามต้องการ */
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));
+  }
+
+  header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #fff 30%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+  .body { padding: 32px; }
+
+  #drop {
+    border: 2px dashed #334155;
+    border-radius: 16px;
+    padding: 44px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(30, 41, 59, 0.4);
+  }
+  #drop:hover, #drop.over {
+    border-color: var(--accent-glow);
+    background: rgba(139, 92, 246, 0.08);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    transform: translateY(-2px);
+  }
+  #drop .icon { font-size: 48px; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5)); }
+  #drop b { display: block; margin-top: 12px; font-size: 16px; color: var(--text-main); }
+  #drop span { font-size: 13px; color: var(--text-muted); margin-top: 4px; display: block; }
+
+  .opts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .opt label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, input[type=number] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 14px;
+    background: #0f172a;
+    color: var(--text-main);
+    outline: none;
+    transition: 0.2s;
+  }
+  select:focus, input[type=number]:focus {
+    border-color: var(--accent-glow);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent-glow);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .card {
+    position: relative;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f172a;
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    border-color: #475569;
+  }
+  .card.drag { opacity: 0.3; }
+  .card img {
+    width: 100%;
+    height: 120px;
+    object-fit: contain;
+    background: #090d16;
+    display: block;
+  }
+  .card .meta {
+    padding: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: rgba(255,255,255,0.02);
+  }
+  .card .num {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--accent-glow);
+    font-size: 11px;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    backdrop-filter: blur(4px);
+  }
+  .card .del {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.85);
+    color: #fff;
+    border: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: 0.2s;
+  }
+  .card .del:hover { background: #ef4444; transform: scale(1.1); }
+
+  .bar { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 28px; }
+  button.act {
+    flex: 1;
+    min-width: 150px;
+    padding: 14px;
+    border: 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-glow));
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+  }
+  .primary:hover:not(:disabled) {
+    opacity: 0.95;
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+    transform: translateY(-1px);
+  }
+  .primary:disabled {
+    background: #334155;
+    color: #64748b;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .ghost {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+  }
+  .ghost:hover { background: rgba(255,255,255,0.1); }
+
+  #status { margin-top: 16px; font-size: 13px; text-align: center; color: var(--text-muted); min-height: 18px; }
+  .prog { height: 6px; background: #1e293b; border-radius: 4px; overflow: hidden; margin-top: 12px; display: none; }
+  .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-blue), var(--accent-glow)); transition: 0.2s; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
+    <!-- จุดใส่โลโก้: เปลี่ยน URL ใน src เป็นรูปภาพโลโก้ของคุณชินอิจิได้เลยค่ะ -->
+    <div class="logo-box">
+      <img src="https://via.placeholder.com/150x50/0f172a/8b5cf6?text=YOUR+LOGO" alt="Logo">
+    </div>
+    
     <h1>🖼️ แปลงรูปภาพเป็น PDF</h1>
     <p>ประมวลผลในเครื่องคุณทั้งหมด • รองรับ JPG, PNG, WEBP, GIF, BMP</p>
   </header>
