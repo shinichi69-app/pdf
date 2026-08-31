@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เว็บแอป แปลงรูปภาพเป็น PDF</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:24px;color:#1f2937}
+  .wrap{max-width:960px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
+  header{padding:24px 28px;background:#111827;color:#fff}
+  header h1{font-size:22px}
+  header p{font-size:13px;opacity:.7;margin-top:4px}
+  .body{padding:24px 28px}
+  #drop{border:2px dashed #c7d2fe;border-radius:14px;padding:40px 20px;text-align:center;cursor:pointer;transition:.2s;background:#f8faff}
+  #drop.over{border-color:#6366f1;background:#eef2ff;transform:scale(1.01)}
+  #drop .icon{font-size:44px}
+  #drop b{display:block;margin-top:8px;font-size:16px}
+  #drop span{font-size:13px;color:#6b7280}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:22px}
+  .opt label{display:block;font-size:12px;font-weight:600;color:#4b5563;margin-bottom:6px}
+  select,input[type=number]{width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff}
+  input[type=range]{width:100%}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;margin-top:22px}
+  .card{position:relative;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#f9fafb;cursor:grab}
+  .card.drag{opacity:.4}
+  .card img{width:100%;height:120px;object-fit:contain;background:#fff;display:block}
+  .card .meta{padding:6px 8px;font-size:11px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .num{position:absolute;top:6px;left:6px;background:#111827;color:#fff;font-size:11px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
+  .card .del{position:absolute;top:6px;right:6px;background:#ef4444;color:#fff;border:0;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+  button.act{flex:1;min-width:150px;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
+  .primary{background:#4f46e5;color:#fff}
+  .primary:hover{background:#4338ca}
+  .primary:disabled{background:#c7d2fe;cursor:not-allowed}
+  .ghost{background:#f3f4f6;color:#374151}
+  .ghost:hover{background:#e5e7eb}
+  #status{margin-top:14px;font-size:13px;text-align:center;color:#4b5563;min-height:18px}
+  .prog{height:6px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-top:10px;display:none}
+  .prog i{display:block;height:100%;width:0;background:#4f46e5;transition:.2s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🖼️ แปลงรูปภาพเป็น PDF</h1>
+    <p>ประมวลผลในเครื่องคุณทั้งหมด • รองรับ JPG, PNG, WEBP, GIF, BMP</p>
+  </header>
+
+  <div class="body">
+    <div id="drop">
+      <div class="icon">📁</div>
+      <b>คลิกเพื่อเลือกไฟล์ หรือลากรูปมาวางที่นี่</b>
+      <span>เลือกได้หลายไฟล์พร้อมกัน • ลากการ์ดเพื่อจัดลำดับหน้า</span>
+      <input type="file" id="file" accept="image/*" multiple hidden>
+    </div>
+
+    <div class="opts">
+      <div class="opt">
+        <label>ขนาดหน้ากระดาษ</label>
+        <select id="size">
+          <option value="a4">A4 (210×297 มม.)</option>
+          <option value="letter">Letter</option>
+          <option value="a3">A3</option>
+          <option value="a5">A5</option>
+          <option value="fit">พอดีกับขนาดรูป</option>
+        </select>
+      </div>
+      <div class="opt">
+        <label>แนวกระดาษ</label>
+        <select id="orient">
+          <option value="auto">อัตโนมัติ (ตามรูป)</option>
+          <option value="p">แนวตั้ง</option>
+          <option value="l">แนวนอน</option>
+        </select>
+      </div>
+      <div class="opt">
+        <label>ระยะขอบ (มม.)</label>
+        <input type="number" id="margin" value="10" min="0" max="50">
+      </div>
+      <div class="opt">
+        <label>คุณภาพ: <span id="qv">85%</span></label>
+        <input type="range" id="quality" min="30" max="100" value="85">
+      </div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="bar">
+      <button class="act primary" id="go" disabled>📄 สร้าง PDF</button>
+      <button class="act ghost" id="clear">🗑️ ล้างทั้งหมด</button>
+    </div>
+    <div class="prog" id="prog"><i></i></div>
+    <div id="status"></div>
+  </div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+const $ = id => document.getElementById(id);
+let items = [], dragIdx = null;
+
+$('quality').oninput = e => $('qv').textContent = e.target.value + '%';
+
+// ---------- เลือก / ลากไฟล์ ----------
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => addFiles(e.target.files);
+['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => {
+  e.preventDefault(); $('drop').classList.add('over');
+}));
+['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => {
+  e.preventDefault(); $('drop').classList.remove('over');
+}));
+$('drop').addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function addFiles(list){
+  [...list].filter(f => f.type.startsWith('image/')).forEach(f => {
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      items.push({file:f, url, w:img.naturalWidth, h:img.naturalHeight});
+      render();
+    };
+    img.src = url;
+  });
+  $('file').value = '';
+}
+
+// ---------- แสดงผล + จัดลำดับ ----------
+function render(){
+  $('grid').innerHTML = items.map((it,i) => `
+    <div class="card" draggable="true" data-i="${i}">
+      <div class="num">${i+1}</div>
+      <button class="del" data-del="${i}">×</button>
+      <img src="${it.url}">
+      <div class="meta">${it.w}×${it.h} • ${(it.file.size/1024).toFixed(0)} KB</div>
+    </div>`).join('');
+  $('go').disabled = items.length === 0;
+  $('status').textContent = items.length ? `เลือกไว้ ${items.length} รูป` : '';
+
+  $('grid').querySelectorAll('.del').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    URL.revokeObjectURL(items[+b.dataset.del].url);
+    items.splice(+b.dataset.del, 1); render();
+  });
+  $('grid').querySelectorAll('.card').forEach(c => {
+    c.ondragstart = () => { dragIdx = +c.dataset.i; c.classList.add('drag'); };
+    c.ondragend   = () => c.classList.remove('drag');
+    c.ondragover  = e => e.preventDefault();
+    c.ondrop      = e => {
+      e.preventDefault();
+      const to = +c.dataset.i;
+      if (dragIdx === null || dragIdx === to) return;
+      items.splice(to, 0, items.splice(dragIdx, 1)[0]);
+      render();
+    };
+  });
+}
+
+$('clear').onclick = () => {
+  items.forEach(i => URL.revokeObjectURL(i.url));
+  items = []; render();
+};
+
+// ---------- บีบอัดรูปเป็น JPEG ----------
+function compress(item, q){
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';                     // กันพื้นหลังโปร่งใสเป็นสีดำ
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0);
+      res(c.toDataURL('image/jpeg', q));
+    };
+    img.src = item.url;
+  });
+}
+
+// ---------- สร้าง PDF ----------
+$('go').onclick = async () => {
+  if (!items.length) return;
+  const size = $('size').value, orientSel = $('orient').value;
+  const margin = Math.max(0, +$('margin').value || 0);
+  const q = +$('quality').value / 100;
+
+  $('go').disabled = true;
+  $('prog').style.display = 'block';
+  let pdf = null;
+
+  try {
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      $('status').textContent = `กำลังประมวลผล ${i+1}/${items.length}...`;
+      $('prog').firstElementChild.style.width = ((i / items.length) * 100) + '%';
+      await new Promise(r => setTimeout(r, 0));
+
+      const data = await compress(it, q);
+      const auto = it.w >= it.h ? 'l' : 'p';
+      const o = orientSel === 'auto' ? auto : orientSel;
+
+      if (size === 'fit') {
+        const fmt = [it.w * 0.2646, it.h * 0.2646];   // px → mm (96dpi)
+        if (!pdf) pdf = new jsPDF({unit:'mm', format:fmt, orientation:'p'});
+        else pdf.addPage(fmt, 'p');
+        pdf.addImage(data, 'JPEG', 0, 0, fmt[0], fmt[1]);
+      } else {
+        if (!pdf) pdf = new jsPDF({unit:'mm', format:size, orientation:o});
+        else pdf.addPage(size, o);
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = pdf.internal.pageSize.getHeight();
+        const aw = pw - margin * 2, ah = ph - margin * 2;
+        const r = Math.min(aw / it.w, ah / it.h);
+        const w = it.w * r, h = it.h * r;
+        pdf.addImage(data, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
+      }
+    }
+
+    $('prog').firstElementChild.style.width = '100%';
+    const name = 'images-' + new Date().toISOString().slice(0,10) + '.pdf';
+    pdf.save(name);
+    $('status').textContent = `✅ สร้าง PDF สำเร็จ (${items.length} หน้า) — ${name}`;
+  } catch (err) {
+    $('status').textContent = '❌ เกิดข้อผิดพลาด: ' + err.message;
+  } finally {
+    $('go').disabled = false;
+    setTimeout(() => { $('prog').style.display = 'none'; $('prog').firstElementChild.style.width = '0'; }, 1200);
+  }
+};
+</script>
+</body>
+</html>
